@@ -10,6 +10,8 @@ using SuperPanel.App.Models;
 using System;
 using System.Linq;
 using System.Text.Json;
+using Microsoft.Extensions.Options;
+using Polly;
 
 namespace SuperPanel.App
 {
@@ -32,8 +34,21 @@ namespace SuperPanel.App
             services.AddOptions();
             services.Configure<DataOptions>(options => Configuration.GetSection("Data").Bind(options));
 
+            var sp = services.BuildServiceProvider();
+            var cfg = sp.GetRequiredService<IOptions<DataOptions>>();
+          
+            // Add External Contacts API client
+            services.AddHttpClient("ExternalContactsApi", c =>
+            {
+                c.BaseAddress = new Uri(cfg.Value.ExternalContactsApiURL);
+            })
+            //Config Polly for client's retry
+            .AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(5, _ => TimeSpan.FromMilliseconds(600)));
+
             // Data
             services.AddSingleton<IUserRepository, UserRepository>();
+            //External Contacts repository
+            services.AddTransient<IExternalContactsRepository, ExternalContactsRepository>();
         }
 
 

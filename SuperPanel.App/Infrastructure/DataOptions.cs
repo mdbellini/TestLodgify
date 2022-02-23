@@ -8,5 +8,9 @@ namespace SuperPanel.App.Infrastructure
     public class DataOptions
     {
         public string JsonFilePath { get; set; }
+        /// <summary>
+        /// URL External Contact's API
+        /// </summary>
+        public string ExternalContactsApiURL { get; set; }
     }
 }
