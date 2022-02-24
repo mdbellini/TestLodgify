@@ -11,7 +11,7 @@ namespace SuperPanel.App.Data
     public interface IUserRepository
     {
         IEnumerable<User> QueryAll();
-        PaginatedList<User> Query(string filter, int pageNumber, int PageSize);
+        PaginatedList<User> Query(string filter, string sortField, bool sortDesc, int pageNumber, int PageSize);
     }
 
     public class UserRepository : IUserRepository
@@ -30,20 +30,43 @@ namespace SuperPanel.App.Data
         {
             return _users;
         }
-        
+
         /// <summary>
         /// Get a paginated list of user, conditionally filtered by email
         /// </summary>
-        /// <param name="filter">Email filter</param>
+        /// <param name="filter">Email/Name filter</param>
+        /// <param name="sortField">Current Sort Order</param>
+        /// <param name="sortDesc">Order Descending</param>
         /// <param name="pageNumber">Current page number</param>
         /// <param name="pageSize">Page Size</param>
         /// <returns></returns>
-        public PaginatedList<User> Query(string filter, int pageNumber, int pageSize)
+        public PaginatedList<User> Query(string filter, string sortField, bool sortDesc, int pageNumber, int pageSize)
         {
             var aUsers = _users.Where(uq => string.IsNullOrWhiteSpace(filter) ||
-                                              uq.Email.Contains(filter))
+                                              uq.Email.Contains(filter, System.StringComparison.InvariantCultureIgnoreCase) ||
+                                              uq.Login.Contains(filter, System.StringComparison.InvariantCultureIgnoreCase) ||
+                                              uq.Phone.Contains(filter, System.StringComparison.InvariantCultureIgnoreCase) ||
+                                              uq.FirstName.Contains(filter, System.StringComparison.InvariantCultureIgnoreCase) ||
+                                              uq.LastName.Contains(filter, System.StringComparison.InvariantCultureIgnoreCase)
+                                              )
                                      .ToArray();
-            
+
+            switch (sortField)
+            {
+                case "FirstName":
+                    aUsers = sortDesc ? aUsers.OrderByDescending(uq => uq.FirstName).ThenByDescending(uq => uq.LastName).ToArray() : aUsers.OrderBy(uq => uq.FirstName).ThenBy(uq => uq.LastName).ToArray();
+                    break;
+                case "Email":
+                    aUsers = sortDesc ? aUsers.OrderByDescending(uq => uq.Email).ToArray() : aUsers.OrderBy(uq => uq.Email).ToArray();
+                    break;
+                case "Login":
+                    aUsers = sortDesc ? aUsers.OrderByDescending(uq => uq.Login).ToArray() : aUsers.OrderBy(uq => uq.Login).ToArray();
+                    break;
+                default:
+                    aUsers = sortDesc ? aUsers.OrderByDescending(uq => uq.LastName).ThenByDescending(uq => uq.FirstName).ToArray() : aUsers.OrderBy(uq => uq.LastName).ThenBy(uq => uq.FirstName).ToArray();
+                    break;
+            }
+
             return PaginatedList<User>.Create(aUsers, pageNumber, pageSize);
         }
     }
