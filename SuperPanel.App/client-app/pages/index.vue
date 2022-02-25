@@ -24,7 +24,7 @@
         />
       </div>
     </div>
-    <div class="row m-4">
+    <div class="row mx-4">
       <div class="col">
         <b-table
           id="tableUsers"
@@ -44,7 +44,26 @@
               <strong>Loading...</strong>
             </div>
           </template>
+          <template #cell(lastName)="data">
+            <b-form-checkbox v-show="!data.value.isAnonymized" style="display:inline" :checked="userGDPRDeletionSelected(data.value.id)" @change="selectRow(data.value.id)" />
+            {{ data.value.lastName }}
+          </template>
+          <template #cell(isAnonymized)="data" class="text-right">
+            <b-button v-show="!data.value.isAnonymized" variant="primary" size="sm" @click="userGDPRDeletion(data.value.id)">
+              GDPR deletion
+            </b-button>
+            <b-button v-show="data.value.isAnonymized" disabled variant="secondary" size="sm">
+              Anonymized
+            </b-button>
+          </template>
         </b-table>
+      </div>
+    </div>
+    <div class="row mx-4 my-1">
+      <div class="col text-right">
+        <b-button v-show="selectionCount>0" variant="primary" size="sm" @click="userGDPRDeletionMasive()">
+          Process GDPR {{ selectionCount }} Users
+        </b-button>
       </div>
     </div>
   </div>
@@ -61,7 +80,8 @@ export default {
         {
           key: 'lastName',
           sortable: true,
-          sortDirection: 'desc'
+          sortDirection: 'desc',
+          formatter: 'dataTemplate'
         },
         {
           key: 'firstName',
@@ -78,15 +98,25 @@ export default {
         {
           key: 'phone',
           sortable: false
+        },
+        {
+          key: 'isAnonymized',
+          sortable: false,
+          formatter: 'dataTemplate'
         }
+
       ],
       isLoading: false,
       filter: null,
       pageNumber: 1,
       pageSize: 10,
       rowCount: 0,
-      users: [
-      ]
+      selection: []
+    }
+  },
+  computed: {
+    selectionCount () {
+      return this.selection.length
     }
   },
   methods: {
@@ -108,6 +138,35 @@ export default {
       } finally {
         this.isLoading = false
       }
+    },
+    dataTemplate (value, key, item) { // function to pass template values
+      return { isAnonymized: item.isAnonymized, id: item.id, lastName: item.lastName }
+    },
+    async userGDPRDeletion (userId) {
+      try {
+        const url = `/api/Users/GDPRDeletion/${userId}`
+        const response = await axios.get(url)
+        if (response.status === 200) {
+          if (response.data.result) {
+            this.$root.$emit('bv::refresh::table', 'tableUsers')
+          } else {
+            alert(`Errors in GDPR Deletion: ${response.data.errors}`)
+          }
+        } else {
+          alert(`Errors in GDPR Deletion: ${response.data.errors}`)
+        }
+      } catch (error) {
+        console.log(error)
+      }
+    },
+    selectRow (userId) {
+      if (this.selection.includes(userId)) { this.selection.splice(this.selection.findIndex(uid => uid === userId), 1) } else { this.selection.push(userId) }
+    },
+    userGDPRDeletionSelected (userId) {
+      return this.selection.includes(userId)
+    },
+    userGDPRDeletionMasive () {
+
     }
   }
 }

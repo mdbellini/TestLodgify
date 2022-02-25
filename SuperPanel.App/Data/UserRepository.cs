@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using SuperPanel.App.Data.Common;
+using System;
+using System.Threading.Tasks;
 
 namespace SuperPanel.App.Data
 {
@@ -12,23 +14,41 @@ namespace SuperPanel.App.Data
     {
         IEnumerable<User> QueryAll();
         PaginatedList<User> Query(string filter, string sortField, bool sortDesc, int pageNumber, int PageSize);
+        Task<string[]> GDPRDeletion(int id);
     }
 
     public class UserRepository : IUserRepository
     {
         private List<User> _users;
+        private readonly IExternalContactsRepository _externalContactsRepository;
 
-        public UserRepository(IOptions<DataOptions> dataOptions)
+        public UserRepository(IOptions<DataOptions> dataOptions, IExternalContactsRepository externalContactsRepository)
         {
             // preload the set of users from file.
             var json = System.IO.File.ReadAllText(dataOptions.Value.JsonFilePath);
             _users = JsonSerializer.Deserialize<IEnumerable<User>>(json)
                 .ToList();
+            _externalContactsRepository = externalContactsRepository;
         }
 
         public IEnumerable<User> QueryAll()
         {
             return _users;
+        }
+
+        /// <summary>
+        /// Get a User from his ID
+        /// </summary>
+        /// <param name="id">User id</param>
+        /// <returns>User in case of exist</returns>
+        private User GetById(int id)
+        {
+            return _users.FirstOrDefault(uq => uq.Id == id);
+        }
+
+        private void SetAnonymized(int id)
+        {
+            _users.First(uq => uq.Id == id).IsAnonymized = true;
         }
 
         /// <summary>
@@ -68,6 +88,34 @@ namespace SuperPanel.App.Data
             }
 
             return PaginatedList<User>.Create(aUsers, pageNumber, pageSize);
+        }
+
+        public async Task<string[]> GDPRDeletion(int id)
+        {
+            List<string> errors = new List<string>();
+            try
+            {
+                User user = GetById(id);
+                if (user == null)
+                    throw new ArgumentException("User not found");
+
+                ExternalContact? externalContact = await _externalContactsRepository.AnonymizeExternalContact(user.Email);
+
+                if (externalContact == null)
+                    errors.Add("External Contact not found");
+                else if (!externalContact.isAnonymized)
+                    errors.Add("External Contact not Anonymized");
+                else
+                    SetAnonymized(id);
+
+            }
+            catch (Exception ex)
+            {
+                errors.Add(ex.Message);
+                Console.WriteLine($"Error in GDPRDeletion -> {ex}");
+            }
+
+            return errors.ToArray();
         }
     }
 }

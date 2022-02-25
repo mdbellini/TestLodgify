@@ -45,7 +45,12 @@ namespace SuperPanel.App
                 c.BaseAddress = new Uri(cfg.Value.ExternalContactsApiURL);
             })
             //Config Polly for client's retry
-            .AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(5, _ => TimeSpan.FromMilliseconds(600)));
+            .AddTransientHttpErrorPolicy(policy => policy.WaitAndRetryForeverAsync(retry => TimeSpan.FromSeconds(retry), (exception, timeSpan) =>
+            {
+                Console.WriteLine(exception);
+            }))
+            .AddTransientHttpErrorPolicy(policy => policy.OrResult(result => result.StatusCode == System.Net.HttpStatusCode.NotFound)
+                                                         .WaitAndRetryAsync(3, _ => TimeSpan.FromSeconds(5)));
 
             // Data
             services.AddSingleton<IUserRepository, UserRepository>();

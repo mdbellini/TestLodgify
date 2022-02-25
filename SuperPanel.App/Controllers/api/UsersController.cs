@@ -5,6 +5,7 @@ using SuperPanel.App.Data;
 using SuperPanel.App.Data.Common;
 using SuperPanel.App.Models;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace SuperPanel.App.Controllers.api
@@ -41,6 +42,37 @@ namespace SuperPanel.App.Controllers.api
 
             return NotFound();
         }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<bool>> GDPRDeletion(int id)
+        {
+            try
+            {
+                var delete_result = await _userRepository.GDPRDeletion(id);
+                return Ok(new { result = !delete_result.Any(), errors = string.Join(", ", delete_result) });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "GDPRDeletion");
+            }
+
+            return NotFound();
+        }
+
+        //public async Task<ActionResult<bool>> GDPRDeletionMasive (int[] usersId)
+        //{
+        //    try
+        //    {
+        //        var delete_result = await _userRepository.GDPRDeletion(id);
+        //        return Ok(new { result = !delete_result.Any(), errors = string.Join(", ", delete_result) });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "GDPRDeletion");
+        //    }
+
+        //    return NotFound();
+        //}
 
     }
 }

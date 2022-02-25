@@ -61,7 +61,7 @@ namespace SuperPanel.App.Data
             if (externalContact != null)
             {
                 var client = _clientFactory.CreateClient("ExternalContactsApi");
-                var request = new HttpRequestMessage(HttpMethod.Put, $"/v1/contacts/{externalContact.Id}/gdpr");
+                var request = new HttpRequestMessage(HttpMethod.Put, $"/v1/contacts/{externalContact.id}/gdpr");
                 var response = await client.SendAsync(request);
 
                 if (response.IsSuccessStatusCode)
