@@ -7,18 +7,15 @@ namespace SuperPanel.App.Controllers
     public class UsersController : Controller
     {
         private readonly ILogger<UsersController> _logger;
-        private readonly IUserRepository _userRepository;
 
-        public UsersController(ILogger<UsersController> logger, IUserRepository userRepository)
+        public UsersController(ILogger<UsersController> logger)
         {
             _logger = logger;
-            _userRepository = userRepository;
         }
 
         public IActionResult Index()
         {
-            var users = _userRepository.QueryAll();
-            return View(users);
+            return View();
         }
 
 

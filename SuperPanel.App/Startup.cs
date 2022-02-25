@@ -10,6 +10,9 @@ using SuperPanel.App.Models;
 using System;
 using System.Linq;
 using System.Text.Json;
+using Microsoft.Extensions.Options;
+using Polly;
+using SuperPanel.App.Helpers;
 
 namespace SuperPanel.App
 {
@@ -29,11 +32,30 @@ namespace SuperPanel.App
             // GenerateFakeData();
 
             services.AddControllersWithViews();
+            services.AddSpaStaticFiles(options => options.RootPath = "client-app/dist");
             services.AddOptions();
             services.Configure<DataOptions>(options => Configuration.GetSection("Data").Bind(options));
 
+            var sp = services.BuildServiceProvider();
+            var cfg = sp.GetRequiredService<IOptions<DataOptions>>();
+
+            // Add External Contacts API named client
+            services.AddHttpClient("ExternalContactsApi", c =>
+            {
+                c.BaseAddress = new Uri(cfg.Value.ExternalContactsApiURL);
+            })
+            //Config Polly for client's retry
+            .AddTransientHttpErrorPolicy(policy => policy.WaitAndRetryForeverAsync(retry => TimeSpan.FromSeconds(retry), (exception, timeSpan) =>
+            {
+                Console.WriteLine(exception);
+            }))
+            .AddTransientHttpErrorPolicy(policy => policy.OrResult(result => result.StatusCode == System.Net.HttpStatusCode.NotFound)
+                                                         .WaitAndRetryAsync(3, _ => TimeSpan.FromSeconds(5)));
+
             // Data
             services.AddSingleton<IUserRepository, UserRepository>();
+            //External Contacts repository
+            services.AddTransient<IExternalContactsRepository, ExternalContactsRepository>();
         }
 
 
@@ -57,12 +79,24 @@ namespace SuperPanel.App
 
             app.UseAuthorization();
 
+
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapControllerRoute(
-                    name: "default",
-                    pattern: "{controller=Users}/{action=Index}/{id?}");
+                endpoints.MapControllers();
             });
+            app.UseSpaStaticFiles();
+            app.UseSpa(spa =>
+            {
+                spa.Options.SourcePath = "client-app";
+                if (env.IsDevelopment())
+                {
+                    // Launch development server for Nuxt
+                    spa.UseNuxtDevelopmentServer();
+                }
+            });
+
+
+
         }
 
         private void GenerateFakeData()

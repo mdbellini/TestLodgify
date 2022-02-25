@@ -14,6 +14,10 @@ namespace SuperPanel.App.Models
 
         public DateTime CreatedAt { get; set; }
 
+        // New property to persist the "anonymized" state
+        public bool IsAnonymized { get; set; }
+
+
         public User() { }
 
         public User(int id)
