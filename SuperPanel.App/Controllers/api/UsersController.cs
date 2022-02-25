@@ -23,6 +23,15 @@ namespace SuperPanel.App.Controllers.api
             _userRepository = userRepository;
         }
 
+        /// <summary>
+        /// Action for User's list
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <param name="sortBy"></param>
+        /// <param name="sortDesc"></param>
+        /// <param name="page"></param>
+        /// <param name="size"></param>
+        /// <returns></returns>
         [HttpGet]
         public ActionResult<PaginatedList<User>> List(string filter = "", string sortBy = "", bool sortDesc = false, int page = 1, int size = 10)
         {
@@ -43,7 +52,12 @@ namespace SuperPanel.App.Controllers.api
             return NotFound();
         }
 
-        [HttpGet("{id}")]
+        /// <summary>
+        /// Action for individual GDPR deletion
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        [HttpPost("{id}")]
         public async Task<ActionResult<bool>> GDPRDeletion(int id)
         {
             try
@@ -59,20 +73,29 @@ namespace SuperPanel.App.Controllers.api
             return NotFound();
         }
 
-        //public async Task<ActionResult<bool>> GDPRDeletionMasive (int[] usersId)
-        //{
-        //    try
-        //    {
-        //        var delete_result = await _userRepository.GDPRDeletion(id);
-        //        return Ok(new { result = !delete_result.Any(), errors = string.Join(", ", delete_result) });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "GDPRDeletion");
-        //    }
+        /// <summary>
+        /// Action for masive GDPR deletion
+        /// </summary>
+        /// <param name="usersId"></param>
+        /// <returns></returns>
+        [HttpPost]
+        public async Task<ActionResult<bool>> GDPRDeletionMasive(int[] usersId)
+        {
+            try
+            {
+                var delete_result = await _userRepository.GDPRDeletion(usersId);
 
-        //    return NotFound();
-        //}
+                var delete_result_json = delete_result.Select(rq => new { user = rq.Item1, errors = rq.Item2 }).ToArray();
+
+                return Ok(delete_result_json);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "GDPRDeletion");
+            }
+
+            return NotFound();
+        }
 
     }
 }

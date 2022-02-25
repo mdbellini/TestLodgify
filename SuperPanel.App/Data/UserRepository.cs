@@ -15,6 +15,7 @@ namespace SuperPanel.App.Data
         IEnumerable<User> QueryAll();
         PaginatedList<User> Query(string filter, string sortField, bool sortDesc, int pageNumber, int PageSize);
         Task<string[]> GDPRDeletion(int id);
+        Task<(string, string)[]> GDPRDeletion(int[] usersId);
     }
 
     public class UserRepository : IUserRepository
@@ -102,9 +103,9 @@ namespace SuperPanel.App.Data
                 ExternalContact? externalContact = await _externalContactsRepository.AnonymizeExternalContact(user.Email);
 
                 if (externalContact == null)
-                    errors.Add("External Contact not found");
+                    errors.Add($"{user.LastName}, {user.FirstName} not found in External API");
                 else if (!externalContact.isAnonymized)
-                    errors.Add("External Contact not Anonymized");
+                    errors.Add($"{user.LastName}, {user.FirstName} contact not Anonymized");
                 else
                     SetAnonymized(id);
 
@@ -116,6 +117,23 @@ namespace SuperPanel.App.Data
             }
 
             return errors.ToArray();
+        }
+
+        public async Task<(string, string)[]> GDPRDeletion(int[] usersId)
+        {
+            //In this scenario would be better for use a case of parallelism of the calls to GDPRDeletion
+            //But with the External API limiting rate, let's keep it secuential
+
+            List<(string, string)> lstResults = new List<(string, string)> ();
+
+            foreach (var userId in usersId)
+            {
+                User user = GetById(userId);
+                string[] result = await GDPRDeletion(userId);
+                lstResults.Add(ValueTuple.Create($"{user.LastName}, {user.FirstName}", result.Any() ? string.Join(',', result) : "GDPR Deleted"));
+            }
+
+            return lstResults.ToArray();
         }
     }
 }

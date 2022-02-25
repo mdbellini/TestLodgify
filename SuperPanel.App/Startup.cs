@@ -39,7 +39,7 @@ namespace SuperPanel.App
             var sp = services.BuildServiceProvider();
             var cfg = sp.GetRequiredService<IOptions<DataOptions>>();
 
-            // Add External Contacts API client
+            // Add External Contacts API named client
             services.AddHttpClient("ExternalContactsApi", c =>
             {
                 c.BaseAddress = new Uri(cfg.Value.ExternalContactsApiURL);

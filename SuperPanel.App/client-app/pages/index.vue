@@ -3,7 +3,7 @@
     <div class="h4 text-center m-4">
       Users List
     </div>
-    <div class="row m-4">
+    <div class="row m-2">
       <div class="col-9">
         <b-form inline>
           <label class="sr-only" for="inline-form-input-name">Filter</label>
@@ -24,7 +24,7 @@
         />
       </div>
     </div>
-    <div class="row mx-4">
+    <div class="row mx-2">
       <div class="col">
         <b-table
           id="tableUsers"
@@ -49,7 +49,7 @@
             {{ data.value.lastName }}
           </template>
           <template #cell(isAnonymized)="data" class="text-right">
-            <b-button v-show="!data.value.isAnonymized" variant="primary" size="sm" @click="userGDPRDeletion(data.value.id)">
+            <b-button v-show="!data.value.isAnonymized" :disabled="isProcesing" variant="primary" size="sm" @click="userGDPRDeletion(data.value.id)">
               GDPR deletion
             </b-button>
             <b-button v-show="data.value.isAnonymized" disabled variant="secondary" size="sm">
@@ -59,7 +59,7 @@
         </b-table>
       </div>
     </div>
-    <div class="row mx-4 my-1">
+    <div class="row mx-2 my-1">
       <div class="col text-right">
         <b-button v-show="selectionCount>0" variant="primary" size="sm" @click="userGDPRDeletionMasive()">
           Process GDPR {{ selectionCount }} Users
@@ -107,6 +107,7 @@ export default {
 
       ],
       isLoading: false,
+      isProcesing: false,
       filter: null,
       pageNumber: 1,
       pageSize: 10,
@@ -144,8 +145,9 @@ export default {
     },
     async userGDPRDeletion (userId) {
       try {
+        this.isProcesing = true
         const url = `/api/Users/GDPRDeletion/${userId}`
-        const response = await axios.get(url)
+        const response = await axios.post(url)
         if (response.status === 200) {
           if (response.data.result) {
             this.$root.$emit('bv::refresh::table', 'tableUsers')
@@ -153,10 +155,12 @@ export default {
             alert(`Errors in GDPR Deletion: ${response.data.errors}`)
           }
         } else {
-          alert(`Errors in GDPR Deletion: ${response.data.errors}`)
+          alert(`Errors in GDPR Deletion: ${response.statusText}`)
         }
       } catch (error) {
         console.log(error)
+      } finally {
+        this.isProcesing = false
       }
     },
     selectRow (userId) {
@@ -165,8 +169,25 @@ export default {
     userGDPRDeletionSelected (userId) {
       return this.selection.includes(userId)
     },
-    userGDPRDeletionMasive () {
-
+    async userGDPRDeletionMasive () {
+      if (this.selectionCount() === 0) { return }
+      try {
+        this.isProcesing = true
+        const url = `/api/Users/GDPRDeletionMasive?usersId=${this.selection.join(',')}`
+        const response = await axios.post(url)
+        if (response.status === 200) {
+          const alertMessage = response.data.map(ur => `${ur.user} -> ${ur.errors}`).join('\r\n')
+          alert(alertMessage)
+          this.selection = []
+          this.$root.$emit('bv::refresh::table', 'tableUsers')
+        } else {
+          alert(`Errors in GDPR Deletion: ${response.statusText}`)
+        }
+      } catch (error) {
+        console.log(error)
+      } finally {
+        this.isProcesing = false
+      }
     }
   }
 }

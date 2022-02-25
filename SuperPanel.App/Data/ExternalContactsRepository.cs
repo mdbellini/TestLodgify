@@ -22,6 +22,11 @@ namespace SuperPanel.App.Data
             _clientFactory = clientFactory;
         }
 
+        /// <summary>
+        /// Search a Contact by it's id in the External Contact API
+        /// </summary>
+        /// <param name="id">External Contact's id</param>
+        /// <returns>External Contact in case of exists</returns>
         public async Task<ExternalContact?> GetExternalContact(int id)
         {
             var client = _clientFactory.CreateClient("ExternalContactsApi");
@@ -38,6 +43,11 @@ namespace SuperPanel.App.Data
             return null;
         }
 
+        /// <summary>
+        /// Search a Contact by it's email in the External Contact API
+        /// </summary>
+        /// <param name="email">External Contact's email</param>
+        /// <returns>External Contact in case of exists</returns>
         public async Task<ExternalContact?> GetExternalContact(string email)
         {
             var client = _clientFactory.CreateClient("ExternalContactsApi");
@@ -54,6 +64,11 @@ namespace SuperPanel.App.Data
             return null;
         }
 
+        /// <summary>
+        /// Make the anonymize call to external contacts API. Requires the email of the contact from search in external api
+        /// </summary>
+        /// <param name="email">Email of the local user for search in external API</param>
+        /// <returns>The external contact with it's anonymized status, in case of exists in External API</returns>
         public async Task<ExternalContact?> AnonymizeExternalContact(string email)
         {
             ExternalContact? externalContact = await GetExternalContact(email);
